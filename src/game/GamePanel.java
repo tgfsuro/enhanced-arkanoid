@@ -3,27 +3,17 @@ package game;
 import game.objects.Ball;
 import game.objects.Brick;
 import game.objects.Paddle;
+import game.AssetLoader.Music;
 
-import javax.sound.sampled.Clip;
 import javax.swing.JPanel;
 import javax.swing.Timer;
-import java.awt.Color;
-import java.awt.GradientPaint;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Paint;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.*;
+import java.awt.event.*;
+import javax.sound.sampled.Clip;
+import java.io.InputStream;
+import javax.sound.sampled.AudioInputStream;
 
-/** Arkanoid 5 level; mỗi level có ảnh nền riêng. */
+/** Arkanoid 5 level; Main Menu có nền + nhạc riêng; Settings bật/tắt nhạc. */
 public class GamePanel extends JPanel implements ActionListener, KeyListener, MouseListener {
 
     // ====== cấu hình ======
@@ -40,7 +30,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private boolean left, right;
 
     // ====== state/HUD ======
-    private enum State { MENU, PLAY, PAUSE, GAMEOVER, WIN }
+    private enum State { MENU, PLAY, PAUSE, SETTINGS, GAMEOVER, WIN }
     private State state = State.MENU;
 
     private int score = 0;
@@ -48,20 +38,33 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private int levelIndex = 0;          // 0-based
     private final int TOTAL_LEVELS = 5;
 
-    // ====== buttons ======
+    // ====== buttons (UI) ======
     private final Rectangle pauseBtn = new Rectangle();
     private final Rectangle homeBtn  = new Rectangle();
+    private final Rectangle settingsBtn = new Rectangle();
     private final int btnW = 26, btnH = 26, btnPad = 10;
-    private Image pauseIcon, homeIcon;
+    private Image pauseIcon, homeIcon, gearIcon;
 
-    // ====== background ======
+    // ====== backgrounds ======
     private Image levelBg;
-    private float bgDim = 0.10f;         // dim overlay 0..1
+    private float bgDim = 0.10f;
+
+    // Main Menu background + music (đường dẫn tuyệt đối bạn đưa)
+    private static final String MAIN_BG_ABS =
+            "C:\\Users\\Admin\\Downloads\\basic-arkanoid\\src\\resources\\backgrounds\\mainbackground.jpg";
+    private static final String MAIN_MUSIC_ABS =
+            "C:\\Users\\Admin\\Downloads\\basic-arkanoid\\src\\resources\\sounds\\soundhall.mp3";
+    private Image mainBg;  // nền của màn menu
 
     // ====== âm thanh ======
-    private Clip bgm;
+    private Music bgm;                 // nhạc hiện tại (menu hoặc level)
+    private boolean musicEnabled = true;
 
-    // fallback nếu thiếu file level
+    // Nhạc theo level (đường tuyệt đối bạn đang dùng)
+    private static final String LEVEL_MUSIC_DIR =
+            "C:\\Users\\Admin\\Downloads\\basic-arkanoid\\src\\resources\\sounds\\soundsoflevel";
+
+    // fallback level layout
     private static final String[][] DEFAULT_LEVELS = {
             {"1010101010","0101010101","1111111111","0101010101","1010101010"},
             {"1111111111","1111111111","1111111111","0000000000","0000000000"},
@@ -70,31 +73,61 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             {"0001111000","0011111100","0111111110","0011111100","0001111000"}
     };
 
+    // ====== Settings overlay controls ======
+    private final Rectangle btnMusicToggle = new Rectangle();
+    private final Rectangle btnMainMenu    = new Rectangle();
+    private final Rectangle btnBack        = new Rectangle();
+
     public GamePanel(int w, int h) {
         this.WIDTH = w; this.HEIGHT = h;
 
-        setPreferredSize(new java.awt.Dimension(WIDTH, HEIGHT));
+        setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.BLACK);
         setFocusable(true);
         addKeyListener(this);
         addMouseListener(this);
 
-        // (Có thể bỏ 3 dòng debug sau khi mọi thứ OK)
-        System.out.println("CHK bg Map1: " + getClass().getClassLoader().getResource("backgrounds/Map1.jpg"));
-        System.out.println("CHK lvl1   : " + getClass().getClassLoader().getResource("levels/level1.txt"));
-        System.out.println("CHK pause  : " + getClass().getClassLoader().getResource("images/pause.png"));
-
         paddle = new Paddle(WIDTH/2.0 - 50, HEIGHT - 40, 100, 12, 6);
         ball   = new Ball(WIDTH/2.0, HEIGHT - 60, 8, 4, -4);
 
-        try { pauseIcon = AssetLoader.scaled("images/pause.png", btnW, btnH); } catch (Exception ignored) {}
-        try { homeIcon  = AssetLoader.scaled("images/home.png",  btnW, btnH); } catch (Exception ignored) {}
-        try { bgm = AssetLoader.loop("sounds/music.wav"); } catch (Exception ignored) {}
+        try { pauseIcon  = AssetLoader.scaled("images/pause.png",  btnW, btnH); } catch (Exception ignored) {}
+        try { homeIcon   = AssetLoader.scaled("images/home.png",   btnW, btnH); } catch (Exception ignored) {}
+        try { gearIcon   = AssetLoader.scaled("images/gear.png",   btnW, btnH); } catch (Exception ignored) {}
 
-        loadLevel(levelIndex);
+        // load assets
+        loadMainBackground();
+        loadLevel(levelIndex);            // chuẩn bị level 1 (chưa phát nhạc level)
+
+        // ở MENU ngay từ đầu -> phát nhạc menu
+        playMenuMusic();
 
         timer = new Timer(1000/60, this);
         timer.start();
+    }
+
+    // ---------- Main Menu assets ----------
+    private void loadMainBackground() {
+        try {
+            java.io.File f = new java.io.File(MAIN_BG_ABS);
+            if (f.exists()) {
+                mainBg = javax.imageio.ImageIO.read(f).getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH);
+                return;
+            }
+        } catch (Exception ignored) {}
+        // fallback classpath
+        try { mainBg = AssetLoader.scaled("backgrounds/mainbackground.jpg", WIDTH, HEIGHT); }
+        catch (Exception ignored) {}
+    }
+
+    private void playMenuMusic() {
+        stopAnyMusic();
+        if (!musicEnabled) return;
+        // ưu tiên file tuyệt đối
+        bgm = AssetLoader.loopMusicFromFile(MAIN_MUSIC_ABS);
+        if (bgm != null) { System.out.println("[MENU BGM] ABS"); return; }
+        // fallback classpath
+        bgm = AssetLoader.loopMusicFromResource("sounds/soundhall.mp3");
+        if (bgm != null) { System.out.println("[MENU BGM] CP"); }
     }
 
     // ---------------- Levels ----------------
@@ -119,7 +152,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         int k = 0;
         for (int r = 0; r < rows; r++) {
             String row = lines.get(r);
-            if (row.length() != cols) throw new IllegalStateException("All lines in level must have same length");
             int y = brickTop + r * (bh + brickGap);
             for (int c = 0; c < cols; c++) {
                 int x = startX + c * (bw + brickGap);
@@ -145,19 +177,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         ClassLoader cl = getClass().getClassLoader();
         for (String p : candidates) {
             java.net.URL url = cl.getResource(p);
-            System.out.println("[BG check] " + p + " -> " + url);
             if (url != null) {
-                try {
-                    levelBg = AssetLoader.scaled(p, WIDTH, HEIGHT);
-                    System.out.println("[BG use]   " + p);
-                    return;
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                try { levelBg = AssetLoader.scaled(p, WIDTH, HEIGHT); return; }
+                catch (Exception ignored) {}
             }
         }
-
-        // Fallback: load trực tiếp từ đĩa (trường hợp resources chưa mark)
+        // Fallback: đọc từ FS
         String[] roots = { "src/resources/", "resources/", "src/main/resources/" };
         for (String root : roots) {
             for (String p : candidates) {
@@ -165,18 +190,44 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
                 if (f.exists()) {
                     try {
                         levelBg = javax.imageio.ImageIO.read(f).getScaledInstance(WIDTH, HEIGHT, Image.SCALE_SMOOTH);
-                        System.out.println("[BG use FS] " + f.getPath());
                         return;
-                    } catch (Exception ex) { ex.printStackTrace(); }
+                    } catch (Exception ignored) {}
                 }
             }
         }
-        System.out.println("[BG] Không tìm thấy ảnh nền cho level " + n);
     }
 
-    private boolean noBricksLeft() {
-        for (Brick b : bricks) if (b != null) return false;
-        return true;
+    // ---------- Music control ----------
+    private void stopAnyMusic() { if (bgm != null) { bgm.stop(); bgm = null; } }
+
+    private void restartLevelMusic(int index) {
+        stopAnyMusic();
+        if (!musicEnabled) return;
+
+        int n = index + 1;
+        String absMp3 = LEVEL_MUSIC_DIR + "\\music" + n + ".mp3";
+
+        // 1) ưu tiên file tuyệt đối MP3/WAV (Clip nếu có mp3spi; fallback JLayer)
+        bgm = AssetLoader.loopMusicFromFile(absMp3);
+        if (bgm != null) { System.out.println("[BGM use ABS] " + absMp3); return; }
+
+        // 2) classpath MP3
+        String cpMp3 = "sounds/soundsoflevel/music" + n + ".mp3";
+        bgm = AssetLoader.loopMusicFromResource(cpMp3);
+        if (bgm != null) { System.out.println("[BGM use CP] " + cpMp3); return; }
+
+        // 3) classpath WAV/AIFF/AU
+        String[] pcm = {
+                "sounds/soundsoflevel/music" + n + ".wav",
+                "sounds/soundsoflevel/music" + n + ".aiff",
+                "sounds/soundsoflevel/music" + n + ".au"
+        };
+        for (String p : pcm) {
+            bgm = AssetLoader.loopMusicFromResource(p);
+            if (bgm != null) { System.out.println("[BGM use CP] " + p); return; }
+        }
+
+        System.out.println("[BGM] Không phát được nhạc level " + n);
     }
 
     // ---------------- Loop ----------------
@@ -197,7 +248,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
 
         if (ball.y - ball.r > HEIGHT) {
             lives--;
-            if (lives <= 0) { state = State.GAMEOVER; pauseBgm(); }
+            if (lives <= 0) { state = State.GAMEOVER; stopAnyMusic(); }
             else { resetBallAndPaddle(); state = State.PAUSE; }
             return;
         }
@@ -226,12 +277,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
 
             bricks[i] = null;
             score += 10;
-            AssetLoader.playOnce("sounds/hit.wav");
+            AssetLoader.loopMusicFromResource("sounds/hit.wav"); // nếu có âm va chạm WAV; bỏ nếu không cần
             break;
         }
 
         if (noBricksLeft()) state = State.WIN;
     }
+
+    private boolean noBricksLeft() { for (Brick b : bricks) if (b != null) return false; return true; }
 
     private void resetBallAndPaddle() {
         paddle.x = WIDTH/2.0 - paddle.w/2.0;
@@ -245,8 +298,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // background
-        if (levelBg != null) {
+        if (state == State.MENU && mainBg != null) {
+            g2.drawImage(mainBg, 0, 0, null);
+        } else if (levelBg != null) {
             g2.drawImage(levelBg, 0, 0, null);
             if (bgDim > 0f) {
                 g2.setColor(new Color(0,0,0, Math.min(255, (int)(bgDim*255))));
@@ -259,54 +313,88 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             g2.setPaint(old);
         }
 
-        for (Brick b : bricks) if (b != null) b.draw(g2);
-        paddle.draw(g2);
-        ball.draw(g2);
+        if (state != State.MENU) {
+            for (Brick b : bricks) if (b != null) b.draw(g2);
+            paddle.draw(g2);
+            ball.draw(g2);
 
-        // HUD
-        g2.setColor(Color.WHITE);
-        g2.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14));
-        g2.drawString("Score: " + score, 12, 20);
-        g2.drawString("Lives: " + "❤".repeat(Math.max(0, lives)), 100, 20);
-        g2.drawString("Level: " + (levelIndex+1) + "/5", 200, 20);
+            // HUD
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 14));
+            g2.drawString("Score: " + score, 12, 20);
+            g2.drawString("Lives: " + "❤".repeat(Math.max(0, lives)), 100, 20);
+            g2.drawString("Level: " + (levelIndex+1) + "/5", 200, 20);
 
-        // buttons
-        int px = getWidth() - btnW - btnPad, py = 8;
-        if (pauseIcon != null) g2.drawImage(pauseIcon, px, py, null);
-        else { g2.setColor(Color.LIGHT_GRAY); g2.fillRect(px+4,py+3,6,20); g2.fillRect(px+16,py+3,6,20); }
-        pauseBtn.setBounds(px, py, btnW, btnH);
+            // buttons
+            int px = getWidth() - btnW - btnPad; int py = 8;
+            if (pauseIcon != null) g2.drawImage(pauseIcon, px, py, null);
+            else { g2.setColor(Color.LIGHT_GRAY); g2.fillRect(px+4,py+3,6,20); g2.fillRect(px+16,py+3,6,20); }
+            pauseBtn.setBounds(px, py, btnW, btnH);
 
-        int hx = px - btnW - 8;
-        if (homeIcon != null) g2.drawImage(homeIcon, hx, py, null);
-        else {
-            g2.setColor(Color.LIGHT_GRAY);
-            int[] xs = {hx+3,hx+13,hx+23,hx+23,hx+3};
-            int[] ys = {py+14,py+4, py+14, py+24, py+24};
-            g2.fillPolygon(xs, ys, xs.length);
+            int hx = px - btnW - 8;
+            if (homeIcon != null) g2.drawImage(homeIcon, hx, py, null);
+            else { g2.setColor(Color.LIGHT_GRAY); int[] xs={hx+3,hx+13,hx+23,hx+23,hx+3}; int[] ys={py+14,py+4,py+14,py+24,py+24}; g2.fillPolygon(xs,ys,5); }
+            homeBtn.setBounds(hx, py, btnW, btnH);
+
+            int sx = hx - btnW - 8;
+            if (gearIcon != null) g2.drawImage(gearIcon, sx, py, null);
+            else { g2.setColor(Color.LIGHT_GRAY); g2.drawOval(sx+4,py+4,18,18); }
+            settingsBtn.setBounds(sx, py, btnW, btnH);
         }
-        homeBtn.setBounds(hx, py, btnW, btnH);
 
-        if (state != State.PLAY) drawOverlay(g2);
+        drawOverlay(g2);
     }
 
     private void drawOverlay(Graphics2D g2) {
-        g2.setColor(new Color(0,0,0,120));
-        g2.fillRect(0,0,getWidth(),getHeight());
+        g2.setColor(new Color(0,0,0, state==State.MENU ? 90 : 120));
+        if (state != State.PLAY) g2.fillRect(0,0,getWidth(),getHeight());
+
         g2.setColor(Color.WHITE);
-        g2.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 18));
+        g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
+
         String title = switch (state) {
             case MENU     -> "Press SPACE to Start";
             case PAUSE    -> "PAUSED - SPACE to Resume";
+            case SETTINGS -> "SETTINGS";
             case GAMEOVER -> "GAME OVER - Press R to Retry";
             case WIN      -> (levelIndex+1 < TOTAL_LEVELS) ? "LEVEL CLEARED - Press N for Next"
                     : "ALL LEVELS CLEARED - Press R to Restart";
             default -> "";
         };
         int tw = g2.getFontMetrics().stringWidth(title);
-        g2.drawString(title, (getWidth()-tw)/2, getHeight()/3);
-        g2.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14));
-        g2.drawString("←/→: move paddle", 20, getHeight()-40);
-        g2.drawString("Click  ⌂  for Home,  ||  for Pause", 20, getHeight()-20);
+        if (state != State.PLAY) g2.drawString(title, (getWidth()-tw)/2, getHeight()/3);
+
+        g2.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        if (state == State.MENU) {
+            g2.drawString("SPACE: Start   ⚙ Settings   ⌂ Main Menu", 20, getHeight()-20);
+        } else if (state != State.PLAY) {
+            g2.drawString("←/→: move paddle", 20, getHeight()-40);
+            g2.drawString("Click ⚙ for Settings, ⌂ for Home, || for Pause", 20, getHeight()-20);
+        }
+
+        if (state == State.SETTINGS) {
+            int bw = 240, bh = 36, gap = 14;
+            int cx = (getWidth()-bw)/2; int cy = getHeight()/2;
+
+            btnMusicToggle.setBounds(cx, cy, bw, bh);
+            drawBtn(g2, btnMusicToggle, (musicEnabled ? "Music: ON (pause/resume)" : "Music: OFF"));
+
+            btnMainMenu.setBounds(cx, cy + bh + gap, bw, bh);
+            drawBtn(g2, btnMainMenu, "Return to MAIN MENU");
+
+            btnBack.setBounds(cx, cy + 2*(bh+gap), bw, bh);
+            drawBtn(g2, btnBack, "Back");
+        }
+    }
+
+    private void drawBtn(Graphics2D g2, Rectangle r, String text) {
+        g2.setColor(new Color(255,255,255,30));
+        g2.fillRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+        g2.setColor(Color.WHITE);
+        g2.drawRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+        int tw = g2.getFontMetrics().stringWidth(text);
+        int th = g2.getFontMetrics().getAscent();
+        g2.drawString(text, r.x + (r.width - tw)/2, r.y + (r.height + th)/2 - 3);
     }
 
     // ---------------- Input ----------------
@@ -317,9 +405,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         if (e.getKeyCode() == KeyEvent.VK_RIGHT) right = true;
 
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            if (state == State.MENU) { state = State.PLAY; resumeBgm(); }
-            else if (state == State.PLAY) { state = State.PAUSE; pauseBgm(); }
-            else if (state == State.PAUSE) { state = State.PLAY; resumeBgm(); }
+            if (state == State.MENU) {
+                state = State.PLAY;
+                // chuyển từ menu sang play: đổi nhạc
+                restartLevelMusic(levelIndex);
+            } else if (state == State.PLAY) {
+                state = State.PAUSE;
+                if (bgm != null) bgm.pause();
+            } else if (state == State.PAUSE) {
+                state = State.PLAY;
+                if (bgm != null) bgm.resume(); else restartLevelMusic(levelIndex);
+            }
         }
 
         if (e.getKeyCode() == KeyEvent.VK_N && state == State.WIN) {
@@ -327,14 +423,21 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
                 levelIndex++;
                 loadLevel(levelIndex);
                 resetBallAndPaddle();
-                state = State.PLAY; resumeBgm();
+                state = State.PLAY;
+                restartLevelMusic(levelIndex);
             } else {
-                resetForMenu(); state = State.MENU;
+                state = State.MENU;
+                resetForMenu();
+                playMenuMusic();
             }
         }
 
         if (e.getKeyCode() == KeyEvent.VK_R && (state == State.GAMEOVER || state == State.WIN)) {
-            resetForMenu(); state = State.PLAY; resumeBgm();
+            resetForMenu(); state = State.PLAY; restartLevelMusic(levelIndex);
+        }
+
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE && state == State.SETTINGS) {
+            state = State.PAUSE;
         }
     }
 
@@ -345,25 +448,51 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
 
     @Override public void mouseClicked(MouseEvent e) {
         Point p = e.getPoint();
-        if (pauseBtn.contains(p)) {
-            if (state == State.PLAY) { state = State.PAUSE; pauseBgm(); }
-            else { state = State.PLAY; resumeBgm(); }
-            AssetLoader.playOnce("sounds/hit.wav");
-        } else if (homeBtn.contains(p)) {
-            state = State.MENU; resetForMenu(); pauseBgm();
-            AssetLoader.playOnce("sounds/hit.wav");
+
+        if (settingsBtn.contains(p) && state != State.MENU) {
+            state = State.SETTINGS; repaint(); return;
         }
-        repaint();
+        if (pauseBtn.contains(p) && state != State.MENU) {
+            if (state == State.PLAY) { state = State.PAUSE; if (bgm != null) bgm.pause(); }
+            else if (state == State.PAUSE) { state = State.PLAY; if (bgm != null) bgm.resume(); else restartLevelMusic(levelIndex); }
+            repaint(); return;
+        }
+        if (homeBtn.contains(p)) {
+            state = State.MENU;
+            resetForMenu();
+            playMenuMusic();
+            repaint(); return;
+        }
+
+        if (state == State.SETTINGS) {
+            if (btnMusicToggle.contains(p)) {
+                musicEnabled = !musicEnabled;
+                if (!musicEnabled) { if (bgm != null) bgm.pause(); }
+                else {
+                    if (state == State.MENU) {
+                        if (bgm != null) bgm.resume(); else playMenuMusic();
+                    } else {
+                        if (bgm != null) bgm.resume(); else restartLevelMusic(levelIndex);
+                    }
+                }
+                repaint(); return;
+            } else if (btnMainMenu.contains(p)) {
+                state = State.MENU;
+                resetForMenu();
+                playMenuMusic();
+                repaint(); return;
+            } else if (btnBack.contains(p)) {
+                state = State.PAUSE; repaint(); return;
+            }
+        }
     }
 
     private void resetForMenu() {
         resetBallAndPaddle();
         score = 0; lives = 3; levelIndex = 0;
         loadLevel(levelIndex);
+        // không phát nhạc level; menu music sẽ được play ở nơi gọi
     }
-
-    private void pauseBgm()  { if (bgm != null && bgm.isRunning()) bgm.stop(); }
-    private void resumeBgm() { if (bgm != null && !bgm.isRunning()) bgm.loop(Clip.LOOP_CONTINUOUSLY); }
 
     @Override public void mousePressed(MouseEvent e) {}
     @Override public void mouseReleased(MouseEvent e) {}

@@ -5,9 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a5d751ed-42e9-426c-9922-9f572224a7e4" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/basic-arkanoid-1.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/basic-arkanoid-1.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/AssetLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/AssetLoader.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/GamePanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/sounds/music.mp3" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/sounds/music.mp3" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +53,7 @@
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/Admin/Downloads/basic-arkanoid/src/Main.java&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
     &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
@@ -90,7 +92,8 @@
       <workItem from="1760497374234" duration="25000" />
       <workItem from="1761625643357" duration="918000" />
       <workItem from="1761840240424" duration="13000" />
-      <workItem from="1762335336625" duration="5167000" />
+      <workItem from="1762335336625" duration="9063000" />
+      <workItem from="1762390600311" duration="603000" />
     </task>
     <servers />
   </component>
