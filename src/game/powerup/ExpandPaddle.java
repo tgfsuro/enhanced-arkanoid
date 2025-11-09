@@ -2,8 +2,9 @@ package game.powerup;
 
 import game.GamePanel;
 
-/** Mở rộng paddle 10s. */
 public final class ExpandPaddle {
-    private ExpandPaddle(){}
-    public static void activate(GamePanel g){ g.activateExpandPaddle(10_000); }
+    private ExpandPaddle() {}
+    public static void activate(GamePanel gp) {
+        gp.activateExpand(10_000); // 10s
+    }
 }

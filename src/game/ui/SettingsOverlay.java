@@ -2,42 +2,57 @@ package game.ui;
 
 import java.awt.*;
 
-/** Vẽ overlay Settings + 3 nút (Music toggle / Main menu / Back). */
-public class SettingsOverlay {
+/**
+ * Overlay cho màn Settings: Music toggle / Main Menu / Back
+ * GamePanel gọi:
+ *  - layoutCenter(w, h) một lần trong ctor
+ *  - render(g2, musicOn) khi state == SETTINGS
+ *  - hitToggle/ hitMainMenu/ hitBack trong xử lý click
+ */
+public final class SettingsOverlay {
 
-    public final Rectangle btnMusicToggle = new Rectangle();
-    public final Rectangle btnMainMenu    = new Rectangle();
-    public final Rectangle btnBack        = new Rectangle();
+    private final Font btnFont = new Font("Monospaced", Font.PLAIN, 14);
+    private Rectangle btnMusicToggle = new Rectangle();
+    private Rectangle btnMainMenu    = new Rectangle();
+    private Rectangle btnBack        = new Rectangle();
 
-    public void draw(Graphics2D g2, boolean musicEnabled, int panelW, int panelH) {
-        g2.setColor(new Color(0, 0, 0, 110));
-        g2.fillRect(0, 0, panelW, panelH);
+    public SettingsOverlay() {}
 
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
-        String title = "SETTINGS";
-        int tw = g2.getFontMetrics().stringWidth(title);
-        g2.drawString(title, (panelW - tw) / 2, panelH / 3);
-
+    /** Tính vị trí nút để ở giữa màn hình. Gọi khi khởi tạo GamePanel (sau khi biết kích thước). */
+    public void layoutCenter(int panelW, int panelH) {
         int bw = 260, bh = 36, gap = 14;
-        int cx = (panelW - bw) / 2, cy = panelH / 2;
+        int cx = (panelW - bw) / 2;
+        int cy = panelH / 2;
 
         btnMusicToggle.setBounds(cx, cy, bw, bh);
-        drawBtn(g2, btnMusicToggle, musicEnabled ? "Music: ON (pause/resume)" : "Music: OFF");
-
         btnMainMenu.setBounds(cx, cy + bh + gap, bw, bh);
-        drawBtn(g2, btnMainMenu, "Return to MAIN MENU");
-
         btnBack.setBounds(cx, cy + 2 * (bh + gap), bw, bh);
+    }
+
+    public void render(Graphics2D g2, boolean musicOn) {
+        g2.setFont(btnFont);
+        drawBtn(g2, btnMusicToggle, musicOn ? "Music: ON (pause/resume)" : "Music: OFF");
+        drawBtn(g2, btnMainMenu, "Return to MAIN MENU");
         drawBtn(g2, btnBack, "Back");
     }
 
+    // ---- hit test cho GamePanel ----
+    public boolean hitToggle(Point p)   { return btnMusicToggle.contains(p); }
+    public boolean hitMainMenu(Point p) { return btnMainMenu.contains(p); }
+    public boolean hitBack(Point p)     { return btnBack.contains(p); }
+
+    // ---- tiện ích vẽ nút ----
     private void drawBtn(Graphics2D g2, Rectangle r, String text) {
+        // nền mờ
         g2.setColor(new Color(255, 255, 255, 30));
         g2.fillRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+        // viền
         g2.setColor(Color.WHITE);
         g2.drawRoundRect(r.x, r.y, r.width, r.height, 10, 10);
-        int tw = g2.getFontMetrics().stringWidth(text), th = g2.getFontMetrics().getAscent();
+        // text
+        FontMetrics fm = g2.getFontMetrics();
+        int tw = fm.stringWidth(text);
+        int th = fm.getAscent();
         g2.drawString(text, r.x + (r.width - tw) / 2, r.y + (r.height + th) / 2 - 3);
     }
 }

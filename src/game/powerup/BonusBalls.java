@@ -2,8 +2,10 @@ package game.powerup;
 
 import game.GamePanel;
 
-/** Thêm 2 quả bóng. */
 public final class BonusBalls {
     private BonusBalls(){}
-    public static void activate(GamePanel g){ g.spawnBonusBalls(2); }
+
+    public static void activate(GamePanel gp) {
+        gp.spawnBonusBalls(2);   // thêm 2 bóng
+    }
 }

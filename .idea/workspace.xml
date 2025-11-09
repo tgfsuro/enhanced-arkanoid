@@ -5,22 +5,29 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a5d751ed-42e9-426c-9922-9f572224a7e4" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/game/logic/CollisionUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/logic/ServingController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/objects/HardBrick.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/objects/UnbreakableBrick.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/play/Bullet.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/play/LazerRay.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/play/Pickup.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/ui/HudOverlay.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/game/ui/SettingsOverlay.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/game/play/Drop.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/game/play/DropManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/game/play/ProjectileManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/GamePanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/GameWindow.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/GameWindow.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/LevelManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/LevelManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/mainhall/MainHall.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/mainhall/MainHall.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/objects/Brick.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/objects/Brick.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/objects/HardBrick.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/objects/HardBrick.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/objects/UnbreakableBrick.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/objects/UnbreakableBrick.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/play/Bullet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/play/Bullet.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/play/LazerRay.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/play/LazerRay.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/powerup/BonusBalls.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/powerup/BonusBalls.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/powerup/ExpandPaddle.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/powerup/ExpandPaddle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/powerup/Gun.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/powerup/Gun.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/powerup/Lazer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/powerup/Lazer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/ui/HudOverlay.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ui/HudOverlay.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/ui/SettingsOverlay.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ui/SettingsOverlay.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/levels/level1.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/levels/level1.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/levels/level2.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/levels/level2.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/levels/level3.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/levels/level3.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/levels/level4.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/levels/level4.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resources/levels/level5.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/resources/levels/level5.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,31 +53,31 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Admin/Downloads/basic-arkanoid&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/Admin/Downloads/basic-arkanoid/src/Main.java&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Admin/Downloads/basic-arkanoid",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "C:/Users/Admin/Downloads/basic-arkanoid/src/Main.java",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Admin\Downloads\basic-arkanoid\src\resources\backgrounds" />
@@ -104,7 +111,7 @@
       <workItem from="1761625643357" duration="918000" />
       <workItem from="1761840240424" duration="13000" />
       <workItem from="1762335336625" duration="9063000" />
-      <workItem from="1762390600311" duration="14489000" />
+      <workItem from="1762390600311" duration="24910000" />
     </task>
     <servers />
   </component>

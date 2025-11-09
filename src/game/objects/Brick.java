@@ -1,60 +1,67 @@
 package game.objects;
 
-import game.play.Pickup;
+import game.play.Pickup; // chứa enum Pickup.Type
 import java.awt.*;
 
-/** Brick cơ bản: có thể gán máu (hp), chế độ bất tử và powerup sẵn có. */
+/** Gạch cơ bản. Hỗ trợ: HP (gạch cứng), bất tử, powerup-embedded, vẽ logo powerup. */
 public class Brick {
-    public int x, y, w, h;
 
-    /** hp <= 0 => vỡ ; unbreakable = true thì không bao giờ vỡ. */
-    protected int hp = 1;
-    protected boolean unbreakable = false;
+    public final int x, y, w, h;
+    private final boolean unbreakable;
+    private final Color baseColor;
+    private final Pickup.Type pickup;   // null nếu không có quà
+    private int hp;                     // 1 = vỡ 1 hit; >1 là gạch cứng; bất tử dùng Integer.MAX_VALUE
 
-    /** Powerup gắn sẵn trong gạch (nếu có) — để vẽ logo & rơi ra khi vỡ. */
-    public Pickup.Type powerup = null;
-
-    public Brick(int x, int y, int w, int h) {
+    public Brick(int x, int y, int w, int h,
+                 boolean unbreakable, Color color,
+                 Pickup.Type pickup, int hp) {
         this.x = x; this.y = y; this.w = w; this.h = h;
+        this.unbreakable = unbreakable;
+        this.baseColor = color != null ? color : Color.LIGHT_GRAY;
+        this.pickup = pickup;                           // có thể null
+        this.hp = Math.max(1, hp);
+        if (unbreakable) this.hp = Integer.MAX_VALUE;   // không thể phá
     }
 
-    /** Trả về true nếu sau cú va chạm, gạch đã vỡ. */
-    public boolean hit() {
+    /** Bị đánh trúng 1 lần. Trả về true nếu gạch vỡ. */
+    public boolean onHit() {
         if (unbreakable) return false;
-        hp--;
-        return hp <= 0;
+        if (hp > 1) { hp -= 1; return false; }
+        hp = 0; return true;
     }
 
     public boolean isUnbreakable() { return unbreakable; }
-    public int getHp() { return hp; }
+    public boolean isDestroyed()   { return hp <= 0; }
+
+    /** Powerup gắn trong gạch (có thể null). */
+    public Pickup.Type getPowerup() { return pickup; }
+    /** Alias để tương thích với GamePanel cũ. */
+    public Pickup.Type getPickup()  { return pickup; }
+    /** Tương thích kiểu gọi hasPickup()!=null. */
+    public Pickup.Type hasPickup()  { return pickup; }
 
     public Rectangle getRect() { return new Rectangle(x, y, w, h); }
 
-    /** Màu gạch cơ bản (xanh dương nhạt). Override ở subclass nếu cần. */
-    protected Color baseColor() { return new Color(120, 200, 255); }
+    /** Màu hiển thị tùy trạng thái. */
+    private Color currentColor() {
+        if (unbreakable) return new Color(130, 130, 140);       // xám “bất tử”
+        if (hp >= 2)     return new Color(40, 180, 90);         // xanh lá “cứng x2”
+        return baseColor;
+    }
 
-    /** Vẽ gạch + logo powerup (nếu có). */
+    /** Vẽ gạch + viền + logo powerup (nếu có). */
     public void draw(Graphics2D g2) {
-        // thân
-        g2.setColor(baseColor());
+        Color c = currentColor();
+        g2.setColor(c);
         g2.fillRoundRect(x, y, w, h, 6, 6);
 
-        // viền nhẹ
-        g2.setColor(new Color(0, 0, 0, 60));
+        // viền
+        g2.setColor(c.darker());
         g2.drawRoundRect(x, y, w, h, 6, 6);
 
-        // hiệu ứng bóng cho unbreakable
-        if (unbreakable) {
-            Paint old = g2.getPaint();
-            g2.setPaint(new GradientPaint(x, y, new Color(255,255,255,120),
-                    x, y + h/2f, new Color(255,255,255,0)));
-            g2.fillRoundRect(x+2, y+2, w-4, h/2, 6, 6);
-            g2.setPaint(old);
-        }
-
-        // logo powerup (E/B/L/G)
-        if (powerup != null) {
-            String s = switch (powerup) {
+        // logo powerup gắn trên mặt gạch
+        if (pickup != null) {
+            String letter = switch (pickup) {
                 case EXPAND -> "E";
                 case BONUS_BALLS -> "B";
                 case LAZER -> "L";
@@ -62,9 +69,21 @@ public class Brick {
             };
             g2.setFont(new Font("Monospaced", Font.BOLD, 12));
             g2.setColor(Color.BLACK);
-            int tw = g2.getFontMetrics().stringWidth(s);
-            int th = g2.getFontMetrics().getAscent();
-            g2.drawString(s, x + (w - tw)/2, y + (h + th)/2 - 2);
+            int tw = g2.getFontMetrics().stringWidth(letter);
+            g2.drawString(letter, x + (w - tw) / 2, y + (h + g2.getFontMetrics().getAscent()) / 2 - 3);
+        }
+
+        // gạch cứng: chấm trắng hiển thị HP (tối đa 3 chấm cho đẹp)
+        if (!unbreakable && hp >= 2) {
+            g2.setColor(new Color(255,255,255,200));
+            int dots = Math.min(3, hp);
+            int gap = 6, sz = 4;
+            int total = dots * sz + (dots - 1) * gap;
+            int sx = x + (w - total) / 2;
+            int sy = y + h - 8;
+            for (int i = 0; i < dots; i++) {
+                g2.fillOval(sx + i * (sz + gap), sy, sz, sz);
+            }
         }
     }
 }
