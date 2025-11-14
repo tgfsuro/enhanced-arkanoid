@@ -49,6 +49,15 @@ public class MainHall extends JFrame {
             dispose();
         });
 
+        // ======= NEW: nút chọn Paddle (skin) =======
+        JButton btnPaddle = new JButton("PADDLE");
+        btnPaddle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnPaddle.setFont(f);
+        btnPaddle.setPreferredSize(new Dimension(180, 42));
+        btnPaddle.setMaximumSize(new Dimension(180, 42));
+        btnPaddle.addActionListener(e -> new PaddleSelectWindow(this).setVisible(true));
+        // ===========================================
+
         JButton btnSettings = new JButton("SETTINGS");
         btnSettings.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnSettings.setFont(f);
@@ -75,7 +84,10 @@ public class MainHall extends JFrame {
         btnQuit.setMaximumSize(new Dimension(180, 42));
         btnQuit.addActionListener(e -> { music.stop(); System.exit(0); });
 
+        // sắp xếp nút
         btnCol.add(btnPlay);
+        btnCol.add(Box.createVerticalStrut(14));
+        btnCol.add(btnPaddle);   // <— nút mới
         btnCol.add(Box.createVerticalStrut(14));
         btnCol.add(btnSettings);
         btnCol.add(Box.createVerticalStrut(14));

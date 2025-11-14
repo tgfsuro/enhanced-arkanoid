@@ -62,10 +62,11 @@ public class Brick {
         // logo powerup gắn trên mặt gạch
         if (pickup != null) {
             String letter = switch (pickup) {
-                case EXPAND -> "E";
-                case BONUS_BALLS -> "B";
-                case LAZER -> "L";
-                case GUN -> "G";
+                case EXPAND       -> "E";
+                case BONUS_BALLS  -> "B";
+                case LAZER        -> "L";
+                case GUN          -> "G";
+                case HEART        -> "H";   // <-- thêm hỗ trợ HEART
             };
             g2.setFont(new Font("Monospaced", Font.BOLD, 12));
             g2.setColor(Color.BLACK);

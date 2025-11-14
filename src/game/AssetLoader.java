@@ -10,48 +10,115 @@ import java.util.*;
 
 /**
  * AssetLoader: load ảnh, text và nhạc.
- * - Ảnh/Text: ưu tiên classpath, fallback đọc từ filesystem (src/resources, resources, ...).
+ * - Ảnh/Text: ưu tiên classpath, fallback đọc từ filesystem (src/, src/resources, resources, ...).
  * - Nhạc: ưu tiên Java Sound Clip (WAV/AIFF/AU, và MP3 nếu đã thêm mp3spi + tritonus_share).
  *   Nếu không mở được MP3 bằng Clip, fallback sang JLayer (jl1.0.1.jar).
- *   Với Clip → hỗ trợ pause/resume thật; JLayer → pause sẽ dừng, resume sẽ phát lại từ đầu.
  */
 public final class AssetLoader {
     private static final Map<String, BufferedImage> IMG_CACHE = new HashMap<>();
     private AssetLoader() {}
 
+    // ========================== path utils ==========================
+    private static String norm(String p) {
+        if (p == null) return "";
+        String s = p.replace('\\', '/').trim();
+        while (s.startsWith("/")) s = s.substring(1);
+        return s;
+    }
+    private static boolean isAbsolutePath(String p) {
+        if (p == null || p.isEmpty()) return false;
+        // Windows absolute "C:/..." hoặc có ":" trong ký tự thứ 2
+        if (p.length() > 1 && p.charAt(1) == ':') return true;
+        // Unix-like
+        return p.startsWith("/") || p.startsWith("\\");
+    }
+
     // ========================== generic open ==========================
     private static InputStream open(String resPath) throws IOException {
-        // 1) classpath
-        InputStream in = AssetLoader.class.getClassLoader().getResourceAsStream(resPath);
+        String rp = norm(resPath);
+
+        // 1) classpath trước
+        InputStream in = AssetLoader.class.getClassLoader().getResourceAsStream(rp);
         if (in != null) return in;
-        // 2) thử trên filesystem
-        String[] roots = { "src/resources/", "resources/", "src/main/resources/", "" };
-        for (String root : roots) {
-            File f = new File(root + resPath);
-            if (f.exists() && f.isFile()) return new FileInputStream(f);
+
+        // 2) nếu người dùng truyền đường dẫn tuyệt đối / tương đối hiện hành → thử trực tiếp
+        File direct = new File(rp);
+        if (direct.exists() && direct.isFile()) {
+            return new FileInputStream(direct);
         }
-        throw new FileNotFoundException("Resource not found anywhere: " + resPath);
+
+        // 3) thử các gốc filesystem phổ biến
+        //    Ưu tiên "" và "." để chạy được khi working dir = root project
+        String[] roots = {
+                "", ".",
+                "src/",
+                "src/resources/",
+                "resources/",
+                "src/main/resources/"
+        };
+        for (String root : roots) {
+            File f = new File(root + rp);
+            if (f.exists() && f.isFile()) {
+                return new FileInputStream(f);
+            }
+        }
+
+        // 4) Nếu vẫn không có, in cảnh báo đường dẫn đã thử (giúp debug)
+        StringBuilder tried = new StringBuilder();
+        tried.append("classpath:/").append(rp).append('\n');
+        tried.append(rp).append('\n');
+        for (String root : roots) tried.append(root).append(rp).append('\n');
+
+        throw new FileNotFoundException(
+                "Resource not found: " + resPath + "\nTried:\n" + tried
+        );
     }
-    private static boolean existsFile(String absPath) { return absPath != null && new File(absPath).exists(); }
+
+    private static boolean existsFile(String absPath) {
+        return absPath != null && new File(absPath).exists();
+    }
 
     // ============================ images =============================
+    /** Ném lỗi nếu không load được (dùng cho sản phẩm). */
     public static BufferedImage image(String resPath) {
-        BufferedImage cached = IMG_CACHE.get(resPath);
+        String key = norm(resPath);
+        BufferedImage cached = IMG_CACHE.get(key);
         if (cached != null) return cached;
-        try (InputStream in = open(resPath)) {
+        try (InputStream in = open(key)) {
             BufferedImage img = ImageIO.read(in);
-            if (img == null) throw new IOException("ImageIO.read returned null for: " + resPath);
-            IMG_CACHE.put(resPath, img);
+            if (img == null) throw new IOException("ImageIO.read returned null for: " + key);
+            IMG_CACHE.put(key, img);
             return img;
         } catch (IOException e) {
-            throw new UncheckedIOException("load image fail: " + resPath, e);
+            throw new UncheckedIOException("load image fail: " + key, e);
         }
     }
-    public static Image scaled(String resPath, int w, int h) { return image(resPath).getScaledInstance(w, h, Image.SCALE_SMOOTH); }
+
+    /** Trả về null nếu không load được (tiện debug/ thử skin). */
+    public static BufferedImage imageOrNull(String resPath) {
+        String key = norm(resPath);
+        BufferedImage cached = IMG_CACHE.get(key);
+        if (cached != null) return cached;
+        try (InputStream in = open(key)) {
+            BufferedImage img = ImageIO.read(in);
+            if (img == null) return null;
+            IMG_CACHE.put(key, img);
+            return img;
+        } catch (IOException e) {
+            System.err.println("[AssetLoader] imageOrNull failed: " + key + " (" + e.getMessage() + ")");
+            return null;
+        }
+    }
+
+    public static Image scaled(String resPath, int w, int h) {
+        BufferedImage img = image(resPath);
+        return img.getScaledInstance(w, h, Image.SCALE_SMOOTH);
+    }
 
     // ============================= text ==============================
     public static java.util.List<String> readLines(String resPath) {
-        try (InputStream in = open(resPath);
+        String key = norm(resPath);
+        try (InputStream in = open(key);
              BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
             java.util.List<String> lines = new ArrayList<>();
             for (String s; (s = br.readLine()) != null; ) {
@@ -60,7 +127,7 @@ public final class AssetLoader {
             }
             return lines;
         } catch (IOException e) {
-            throw new UncheckedIOException("read text fail: " + resPath, e);
+            throw new UncheckedIOException("read text fail: " + key, e);
         }
     }
 
@@ -151,19 +218,18 @@ public final class AssetLoader {
 
     /** Tạo Music từ resource path: ưu tiên Clip (resume được), nếu lỗi → JLayer loop. */
     public static Music loopMusicFromResource(String path) {
-        // thử Clip trước
+        String key = norm(path);
         try {
-            Clip c = openClip(open(path));
+            Clip c = openClip(open(key));
             return new ClipMusic(c, true);
         } catch (Throwable clipFail) {
-            // fallback JLayer
             try {
                 Class<?> clazz = Class.forName("javazoom.jl.player.Player");
                 Thread th = new Thread(() -> {
                     while (!Thread.currentThread().isInterrupted()) {
-                        try (InputStream in = open(path)) {
+                        try (InputStream in = open(key)) {
                             Object player = clazz.getConstructor(InputStream.class).newInstance(in);
-                            clazz.getMethod("play").invoke(player); // chạy hết bài
+                            clazz.getMethod("play").invoke(player);
                         } catch (Throwable e) { break; }
                     }
                 }, "mp3-jlayer-loop");
@@ -172,7 +238,7 @@ public final class AssetLoader {
                 System.err.println("[MP3] Đang dùng JLayer fallback – pause sẽ không resume.");
                 return new JLayerMusic(th);
             } catch (Throwable t) {
-                System.err.println("[AUDIO] Không phát được: " + path + " (" + t.getMessage() + ")");
+                System.err.println("[AUDIO] Không phát được: " + key + " (" + t.getMessage() + ")");
                 return null;
             }
         }

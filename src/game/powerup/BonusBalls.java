@@ -6,6 +6,7 @@ public final class BonusBalls {
     private BonusBalls(){}
 
     public static void activate(GamePanel gp) {
-        gp.spawnBonusBalls(2);   // thêm 2 bóng
+        // mỗi bóng hiện có sẽ sinh thêm 2 bóng (tổng thành x3)
+        gp.spawnBonusBalls();
     }
 }

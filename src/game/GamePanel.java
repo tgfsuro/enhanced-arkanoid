@@ -4,8 +4,8 @@ import game.objects.Ball;
 import game.objects.Brick;
 import game.objects.Paddle;
 import game.play.DropManager;
-import game.play.ProjectileManager;
 import game.play.Pickup;
+import game.play.ProjectileManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,54 +21,51 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
     private enum State { MENU, PLAY, PAUSE, SETTINGS, GAMEOVER, WIN }
     private State state = State.MENU;
 
+    // === KÍCH THƯỚC PADDLE MỚI (nhỏ hơn) ===
+    private static final int PADDLE_W_DEFAULT = 96 ;
+    private static final int PADDLE_H_DEFAULT = 12;
+
     private final LevelManager levels;
     private final MusicHub music = new MusicHub();
+    private final DropManager dropMgr = new DropManager();
+    private final ProjectileManager projMgr = new ProjectileManager();
 
     private final List<Ball> balls = new ArrayList<>();
-    private Paddle paddle;
+    private final Paddle paddle;
 
-    // serving swing
+    // serving sway
     private boolean serving = true;
     private double serveOffset = 0;
     private int serveDir = +1;
     private double serveSpeed = 1.8;
 
-    // UI
+    // HUD/state
+    private int score = 0, lives = 3, levelIndex = 0;
+    private final int TOTAL_LEVELS = 5;
+
+    // buttons
     private final Rectangle pauseBtn = new Rectangle();
     private final Rectangle homeBtn  = new Rectangle();
     private final Rectangle settingsBtn = new Rectangle();
     private final int btnW = 26, btnH = 26, btnPad = 10;
     private Image pauseIcon, homeIcon, gearIcon, mainBg;
 
-    // HUD
-    private int score = 0, lives = 3, levelIndex = 0;
-    private final int TOTAL_LEVELS = 5;
-
     // settings overlay
     private final Rectangle btnMusicToggle = new Rectangle();
     private final Rectangle btnMainMenu    = new Rectangle();
     private final Rectangle btnBack        = new Rectangle();
 
-    // managers vừa tách
-    private final DropManager dropMgr = new DropManager();
-    private final ProjectileManager projMgr = new ProjectileManager();
-
-    // expand paddle timer
+    // expand timer
     private long expandUntil = 0;
     private Integer paddleOrigW = null;
 
     // input
     private boolean left, right;
 
-    /** Cho phép súng bắn tự động trong ms mili giây (wrapper cho ProjectileManager). */
-    public void enableGun(int ms) {                 // nhận int cho khớp Gun.activate(...)
-        projMgr.enableGun(ms);
-    }
-
-    /** Bắn một tia laser ngay theo tâm paddle (wrapper cho ProjectileManager). */
-    public void fireLaser() {
-        projMgr.fireLaser(paddleCenterX(), levels, dropMgr, this::addScore);
-    }
+    // ==== wrappers cho powerup ====
+    public void enableGun(int ms) { projMgr.enableGun(ms); }                  // gun: bắn từ 2 mép
+    public void fireLaser() { projMgr.fireLaser(paddleCenterX(), levels, dropMgr, this::addScore); } // laser: giữa
+    public void addLife(int d) { lives = Math.min(9, lives + Math.max(0, d)); }
 
     public GamePanel(int w, int h) {
         this.WIDTH = w; this.HEIGHT = h;
@@ -80,7 +77,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         addMouseListener(this);
 
         levels = new LevelManager(w, h);
-        paddle = new Paddle(WIDTH / 2.0 - 50, HEIGHT - 40, 100, 12, 6);
+
+        paddle = new Paddle(
+                WIDTH / 2.0 - PADDLE_W_DEFAULT / 2.0,
+                HEIGHT - 60,
+                PADDLE_W_DEFAULT,
+                PADDLE_H_DEFAULT,
+                5.8
+        );
+        // dùng skin đang lưu trong thư mục của bạn
+        paddle.setSkinPath("src/game/mainhall/paddle/paddle1.png");
+
         balls.add(new Ball(WIDTH / 2.0, HEIGHT - 60, 8, 0, 0));
 
         try { pauseIcon  = AssetLoader.scaled("images/pause.png",  btnW, btnH); } catch (Exception ignored) {}
@@ -93,13 +100,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         timer.start();
     }
 
-    // ==== từ sảnh vào level 1 ====
     public void prepareLevel1FromHall() {
         music.stop();
         levelIndex = 0;
         levels.load(levelIndex);
         resetBallPaddle();
-        serving = true; serveOffset = 0; serveDir = +1;
+        serving = true;
         state = State.PLAY;
         music.playLevel(levelIndex);
     }
@@ -109,18 +115,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         repaint();
     }
 
-    private void addScore(int d){ score += d; }
-
     private void update() {
         if (left)  paddle.move(-1, WIDTH);
         if (right) paddle.move( 1, WIDTH);
 
-        // serving sway
         if (serving) {
             double maxOffset = paddle.w / 2.0 - 8;
             serveOffset += serveDir * serveSpeed;
-            if (serveOffset > maxOffset) { serveOffset = maxOffset; serveDir = -1; }
-            if (serveOffset < -maxOffset){ serveOffset = -maxOffset; serveDir = +1; }
+            if (serveOffset >  maxOffset) { serveOffset =  maxOffset; serveDir = -1; }
+            if (serveOffset < -maxOffset) { serveOffset = -maxOffset; serveDir = +1; }
 
             Ball b = balls.get(0);
             b.x = paddle.x + paddle.w / 2.0 + serveOffset;
@@ -132,13 +135,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             return;
         }
 
-        // balls flying
         for (int i = 0; i < balls.size(); i++) {
             Ball b = balls.get(i);
             b.update();
-            if (b.x - b.r < 0)      { b.x = b.r;           b.vx = -b.vx; }
-            if (b.x + b.r > WIDTH)  { b.x = WIDTH - b.r;   b.vx = -b.vx; }
-            if (b.y - b.r < 0)      { b.y = b.r;           b.vy = -b.vy; }
+            if (b.x - b.r < 0)      { b.x = b.r;         b.vx = -b.vx; }
+            if (b.x + b.r > WIDTH)  { b.x = WIDTH-b.r;   b.vx = -b.vx; }
+            if (b.y - b.r < 0)      { b.y = b.r;         b.vy = -b.vy; }
             if (b.y - b.r > HEIGHT) { balls.remove(i--); continue; }
 
             if (b.getRect().intersects(paddle.getRect()) && b.vy > 0) {
@@ -171,9 +173,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
                     }
                     levels.bricks[j] = null;
                     addScore(10);
-                } else {
-                    addScore(2);
-                }
+                } else addScore(2);
                 break;
             }
         }
@@ -195,9 +195,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
                 resetBallPaddle();
                 enterServingMode();
                 music.playLevel(levelIndex);
-            } else {
-                state = State.WIN; music.stop();
-            }
+            } else { state = State.WIN; music.stop(); }
         }
     }
 
@@ -213,38 +211,41 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         balls.clear();
         balls.add(new Ball(paddle.x + paddle.w/2.0, paddle.y - 9, 8, 0, 0));
         serving = true; serveOffset = 0; serveDir = +1;
-        // giữ state = PLAY
     }
 
-    // ===== Powerups =====
+    private void addScore(int d){ score += d; }
     private int paddleCenterX() { return (int)(paddle.x + paddle.w / 2.0); }
 
     private void applyDrop(Pickup.Type t) {
         switch (t) {
             case EXPAND       -> activateExpand(10_000);
-            case BONUS_BALLS  -> spawnBonusBalls(2);
-            case LAZER        -> projMgr.fireLaser(paddleCenterX(), levels, dropMgr, this::addScore);
-            case GUN          -> projMgr.enableGun(5_000);
+            case BONUS_BALLS  -> spawnBonusBalls();
+            case LAZER        -> fireLaser();
+            case GUN          -> enableGun(5_000);
+            case HEART        -> addLife(1);
         }
     }
 
     public void activateExpand(long ms) {
         if (paddleOrigW == null) paddleOrigW = paddle.w;
-        paddle.w = (int)Math.round(paddle.w * 1.6);
+        paddle.w = (int)Math.round(paddle.w * 1.5);   // thu bớt hệ số nở
         if (paddle.x + paddle.w > WIDTH - 10) paddle.x = WIDTH - 10 - paddle.w;
         expandUntil = System.currentTimeMillis() + ms;
     }
 
-    public void spawnBonusBalls(int count) {
+    /** x3 mỗi bóng hiện có (bonus chuỗi). */
+    public void spawnBonusBalls() {
         if (serving || balls.isEmpty()) return;
-        Ball ref = balls.get(0);
-        for (int i = 0; i < count; i++) {
-            double vx = (i % 2 == 0) ? -3.0 : 3.0;
-            balls.add(new Ball(ref.x, ref.y, ref.r, vx, -4 - 0.5 * i));
+        int n = balls.size();
+        List<Ball> extra = new ArrayList<>(n * 2);
+        for (int i = 0; i < n; i++) {
+            Ball ref = balls.get(i);
+            extra.add(new Ball(ref.x, ref.y, ref.r, ref.vx - 1.8, ref.vy - 0.6));
+            extra.add(new Ball(ref.x, ref.y, ref.r, ref.vx + 1.8, ref.vy - 0.6));
         }
+        balls.addAll(extra);
     }
 
-    // ====== render ======
     @Override protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
@@ -253,8 +254,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         if (state == State.MENU && mainBg != null) g2.drawImage(mainBg, 0, 0, null);
         else if (levels.background() != null)      g2.drawImage(levels.background(), 0, 0, null);
         else {
-            g2.setPaint(new GradientPaint(0, 0, new Color(10,10,20), 0, getHeight(), Color.BLACK));
-            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setPaint(new GradientPaint(0,0,new Color(10,10,20), 0,getHeight(), Color.BLACK));
+            g2.fillRect(0,0,getWidth(),getHeight());
         }
 
         if (state != State.MENU) {
@@ -323,7 +324,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             drawBtn(g2, btnBack, "Back");
         }
     }
-
     private void drawBtn(Graphics2D g2, Rectangle r, String text) {
         g2.setColor(new Color(255,255,255,30));
         g2.fillRoundRect(r.x,r.y,r.width,r.height,10,10);
@@ -333,12 +333,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         g2.drawString(text, r.x + (r.width - tw)/2, r.y + (r.height + th)/2 - 3);
     }
 
-    // ==== input ====
     @Override public void keyTyped(KeyEvent e) {}
     @Override public void keyPressed(KeyEvent e) {
         if (e.getKeyCode()==KeyEvent.VK_LEFT || e.getKeyCode()==KeyEvent.VK_A)  left = true;
         if (e.getKeyCode()==KeyEvent.VK_RIGHT|| e.getKeyCode()==KeyEvent.VK_D) right = true;
-
         if (e.getKeyCode()==KeyEvent.VK_SPACE) {
             if (state == State.MENU) { prepareLevel1FromHall(); return; }
             if (serving) { launchFromServe(); state = State.PLAY; music.resume(); return; }
@@ -357,7 +355,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             resetAll(); enterServingMode(); music.playLevel(levelIndex);
         }
     }
-
     private void launchFromServe() {
         Ball b = balls.get(0);
         double center = paddle.x + paddle.w / 2.0;
@@ -368,7 +365,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         b.vy = -Math.sqrt(Math.max(1, speed*speed - b.vx*b.vx));
         serving = false;
     }
-
     @Override public void keyReleased(KeyEvent e) {
         if (e.getKeyCode()==KeyEvent.VK_LEFT || e.getKeyCode()==KeyEvent.VK_A)  left = false;
         if (e.getKeyCode()==KeyEvent.VK_RIGHT|| e.getKeyCode()==KeyEvent.VK_D) right = false;
@@ -383,7 +379,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             repaint(); return;
         }
         if (homeBtn.contains(p)) { goToMainMenu(); return; }
-
         if (state == State.SETTINGS) {
             if (btnMusicToggle.contains(p)) {
                 music.setEnabled(!music.isEnabled(), state==State.MENU, levelIndex);
@@ -392,7 +387,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
             else if (btnBack.contains(p)) { state=State.PAUSE; repaint(); return; }
         }
     }
-
     private void goToMainMenu() {
         try { music.stop(); } catch (Exception ignored) {}
         java.awt.Window win = javax.swing.SwingUtilities.getWindowAncestor(this);
@@ -407,7 +401,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener, Mo
         expandUntil = 0; paddleOrigW = null;
         serving = true; serveOffset = 0; serveDir = +1;
     }
-
     private void resetAll() {
         score = 0; lives = 3; levelIndex = 0;
         levels.load(levelIndex);

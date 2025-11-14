@@ -21,8 +21,12 @@ public class LevelManager {
     private final int gap = 4;
     private final int top = 60;
 
-    public LevelManager(int w, int h) { this.WIDTH = w; this.HEIGHT = h; }
+    public LevelManager(int w, int h) {
+        this.WIDTH = w;
+        this.HEIGHT = h;
+    }
 
+    /** Tải layout & gán power-up theo ký tự E/B/L(Z)/G/H, nếu map không có thì rải auto (không dồn 1 cột). */
     public void load(int levelIndex) {
         // 1) đọc layout từ resources/levels/levelN.txt (nếu có), fallback sang mặc định
         List<String> lines;
@@ -44,12 +48,14 @@ public class LevelManager {
         bricks = new Brick[rows * cols];
         int idx = 0;
 
-        // thiết lập độ khó tăng dần: tỉ lệ gạch cứng & bất tử tăng theo level
+        // độ khó tăng dần
         double hardRate  = 0.10 + levelIndex * 0.05; // 10% → 30%
         double unbRate   = 0.05 + levelIndex * 0.03; // 5%  → 17%
         hardRate = Math.min(0.35, hardRate);
         unbRate  = Math.min(0.20, unbRate);
 
+        // - Nếu map có ký tự E/B/L/Z/G/H → dùng đúng ký tự.
+        // - Nếu không có, dùng công thức hash theo (r, c) để rải đều (hạn chế dồn 1 cột).
         for (int r = 0; r < rows; r++) {
             String row = lines.get(r);
             int y = top + r * (bh + gap);
@@ -57,42 +63,58 @@ public class LevelManager {
             for (int c = 0; c < cols; c++) {
                 int x = startX + c * (bw + gap);
                 char ch = row.charAt(c);
-                if (ch == '0') { bricks[idx++] = null; continue; }
+                if (ch == '0' || ch == ' ') { bricks[idx++] = null; continue; }
 
-                // powerup logo gán vào 1 số gạch: cứ 5 ô đặt 1 lần (đơn giản)
-                Pickup.Type pu = null;
-                if ((r * cols + c + levelIndex) % 5 == 0) {
-                    int pick = (r + c + levelIndex) % 4;
-                    pu = switch (pick) {
-                        case 0 -> Pickup.Type.EXPAND;
-                        case 1 -> Pickup.Type.BONUS_BALLS;
-                        case 2 -> Pickup.Type.LAZER;
-                        default -> Pickup.Type.GUN;
-                    };
+                // 1) power-up do map chỉ định (ưu tiên)
+                Pickup.Type puFromMap = null;
+                switch (ch) {
+                    case 'E' -> puFromMap = Pickup.Type.EXPAND;
+                    case 'B' -> puFromMap = Pickup.Type.BONUS_BALLS;
+                    case 'L', 'Z' -> puFromMap = Pickup.Type.LAZER; // L/Z đều là laser
+                    case 'G' -> puFromMap = Pickup.Type.GUN;
+                    case 'H' -> puFromMap = Pickup.Type.HEART;      // Heart từ map
+                    default  -> { /* ký tự khác: không phải power-up */ }
                 }
 
-                // ưu tiên bất tử > cứng > thường
+                // 2) nếu map không chỉ định thì rải auto
+                Pickup.Type pu = puFromMap;
+                if (pu == null) {
+                    // (31*r + 17*c + 13*levelIndex) % 9 == 0  → xác suất ~1/9
+                    int sel = (31 * r + 17 * c + 13 * levelIndex) % 9;
+                    if (sel == 0) {
+                        int t = (r * 3 + c * 5 + levelIndex) % 5;
+                        pu = switch (t) {
+                            case 0 -> Pickup.Type.EXPAND;
+                            case 1 -> Pickup.Type.BONUS_BALLS;
+                            case 2 -> Pickup.Type.LAZER;
+                            case 3 -> Pickup.Type.GUN;
+                            default -> Pickup.Type.HEART; // thêm Heart vào rải auto
+                        };
+                    }
+                }
+
+                // 3) tạo brick (ưu tiên bất tử > cứng > thường)
                 double rnd = Math.random();
                 if (rnd < unbRate) {
                     bricks[idx++] = new UnbreakableBrick(x, y, bw, bh);
                 } else if (rnd < unbRate + hardRate) {
                     bricks[idx++] = new HardBrick(x, y, bw, bh, pu);
                 } else {
-                    // gạch thường (hp=1), màu nhẹ; có thể chứa powerup
                     Color col = new Color(120, 170, 255);
                     bricks[idx++] = new Brick(x, y, bw, bh, false, col, pu, 1);
                 }
             }
         }
 
-        // nền: backgrounds/MapN.(png|jpg|jpeg)
+        // nền
         background = tryBackgroundForLevel(levelIndex);
     }
 
+    /** Level đã dọn sạch (chấp nhận còn gạch bất tử). */
     public boolean cleared() {
-        for (Brick b : bricks) if (b != null && !b.isUnbreakable() && !b.isDestroyed()) return false;
-        // chấp nhận còn gạch bất tử
-        for (Brick b : bricks) if (b != null && !b.isUnbreakable()) return false;
+        for (Brick b : bricks) {
+            if (b != null && !b.isUnbreakable() && !b.isDestroyed()) return false;
+        }
         return true;
     }
 
@@ -121,7 +143,10 @@ public class LevelManager {
                 "backgrounds/level" + (index+1) + ".jpeg",
         };
         for (String p : cands) {
-            try { Image img = AssetLoader.scaled(p, WIDTH, HEIGHT); if (img != null) return img; } catch (Exception ignored) {}
+            try {
+                Image img = AssetLoader.scaled(p, WIDTH, HEIGHT);
+                if (img != null) return img;
+            } catch (Exception ignored) {}
         }
         return null;
     }
