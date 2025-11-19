@@ -49,7 +49,7 @@ public class MainHall extends JFrame {
             dispose();
         });
 
-        // ======= NEW: nút chọn Paddle (skin) =======
+        // ======= Nút chọn Paddle (skin) =======
         JButton btnPaddle = new JButton("PADDLE");
         btnPaddle.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnPaddle.setFont(f);

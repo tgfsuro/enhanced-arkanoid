@@ -6,7 +6,7 @@ import game.objects.Paddle;
 
 import java.awt.*;
 
-/** Các hàm tiện ích xử lý va chạm. */
+/** Các hàm xử lý va chạm. */
 public final class CollisionUtil {
     private CollisionUtil() {}
 

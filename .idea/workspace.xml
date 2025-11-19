@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a5d751ed-42e9-426c-9922-9f572224a7e4" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/objects/Brick.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/objects/Brick.java" afterDir="false" />
-    </list>
+    <list default="true" id="a5d751ed-42e9-426c-9922-9f572224a7e4" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -94,7 +91,7 @@
       <workItem from="1762821156975" duration="8096000" />
       <workItem from="1763079141186" duration="1218000" />
       <workItem from="1763289467894" duration="8000" />
-      <workItem from="1763480610211" duration="1310000" />
+      <workItem from="1763480610211" duration="2032000" />
     </task>
     <servers />
   </component>
